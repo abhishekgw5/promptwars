@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { WeatherData, Location, Language } from '@/lib/types';
 
 interface Props {
@@ -46,12 +46,27 @@ export default function FollowUpSuggestions({ feature, weather, location, langua
   const questions = SUGGESTIONS[feature] ?? [];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Reset chat when switching tabs
   useEffect(() => {
     setMessages([]);
     setLoading(false);
   }, [feature]);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const text = inputRef.current?.value.trim();
+    if (!text || loading) return;
+    if (inputRef.current) inputRef.current.value = '';
+    handleAsk(text);
+  };
 
   const handleAsk = async (question: string) => {
     setMessages((prev) => [...prev, { role: 'user', content: question }]);
@@ -163,6 +178,27 @@ export default function FollowUpSuggestions({ feature, weather, location, langua
               </div>
             </div>
           )}
+
+          <div ref={chatEndRef} />
+
+          {/* Chat input */}
+          <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Ask a follow-up question..."
+              disabled={loading}
+              className="input-field flex-1 text-sm"
+              aria-label="Type your question"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary text-sm py-2 px-4 flex-shrink-0"
+            >
+              Send
+            </button>
+          </form>
         </div>
       )}
     </div>
