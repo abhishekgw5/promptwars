@@ -221,7 +221,6 @@ Include 5-7 categories: Home Safety, Outdoor Safety, Vehicle Safety, Health & Hy
 
   return prompts[type] || prompts.safety;
 }
-Assess risk honestly. Provide 4-6 items per array.`,
 
 function buildUserPrompt(
   type: string,
