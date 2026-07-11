@@ -48,10 +48,6 @@ export type Language = 'en' | 'hi';
 export const LANGUAGES: Record<Language, string> = {
   en: 'English',
   hi: 'हिन्दी',
-  mr: 'मराठी',
-  te: 'తెలుగు',
-  ta: 'தமிழ்',
-  bn: 'বাংলা',
 };
 
 export interface PreparednessResult {

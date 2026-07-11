@@ -13,10 +13,6 @@ const CACHE_MAX_AGE = 300;
 const OWM_LANG_MAP: Record<string, string> = {
   en: 'en',
   hi: 'hi',
-  bn: 'bn',
-  mr: 'en', // OWM does not support Marathi — fallback to English
-  te: 'en', // OWM does not support Telugu — fallback to English
-  ta: 'en', // OWM does not support Tamil — fallback to English
 };
 
 export async function GET(request: NextRequest) {
