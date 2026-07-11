@@ -3,10 +3,51 @@ import { serverFetch } from '@/lib/server-fetch';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+// Ordered fallback list — try each model until one works
+const MODEL_FALLBACKS = [
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'llama-3.3-70b-versatile',
+  'llama3-70b-8192',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+];
+
+async function callGroq(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string
+): Promise<Response> {
+  return serverFetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 3000,
+      response_format: { type: 'json_object' },
+    }),
+  });
+}
+
+export async function GET() {
+  // Health check endpoint — useful for diagnosing deployment issues
+  const hasKey = !!process.env.GROQ_API_KEY;
+  const model = process.env.AI_MODEL || MODEL_FALLBACKS[0];
+  return NextResponse.json({ status: 'ok', hasKey, model });
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'AI API key not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'AI API key not configured. Set GROQ_API_KEY in Vercel environment variables.' }, { status: 500 });
   }
 
   try {
@@ -24,33 +65,37 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = buildSystemPrompt(type, language);
     const userPrompt = buildUserPrompt(type, weatherData, location, userInput);
-    const model = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
-    const response = await serverFetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 3000,
-        response_format: { type: 'json_object' },
-      }),
-    });
+    // Try the configured model first, then fallbacks
+    const configuredModel = process.env.AI_MODEL;
+    const modelsToTry = configuredModel
+      ? [configuredModel, ...MODEL_FALLBACKS.filter((m) => m !== configuredModel)]
+      : MODEL_FALLBACKS;
 
-    if (!response.ok) {
+    let response: Response | null = null;
+    let lastError = '';
+
+    for (const model of modelsToTry) {
+      response = await callGroq(apiKey, model, systemPrompt, userPrompt);
+      if (response.ok) break;
+
       const errText = await response.text();
-      console.error('Groq API error:', response.status, errText);
-      if (response.status === 429) {
+      console.error(`Groq model "${model}" failed (${response.status}):`, errText);
+      lastError = errText;
+
+      // Only retry on model-not-found (404); stop on auth/rate/other errors
+      if (response.status !== 404) break;
+      response = null;
+    }
+
+    if (!response || !response.ok) {
+      if (response?.status === 429) {
         return NextResponse.json({ error: 'Rate limit reached — please wait a moment and try again.' }, { status: 429 });
       }
-      return NextResponse.json({ error: 'AI service temporarily unavailable' }, { status: 502 });
+      return NextResponse.json(
+        { error: `AI service error: ${lastError || 'All models unavailable'}` },
+        { status: 502 }
+      );
     }
 
     const data = await response.json();
