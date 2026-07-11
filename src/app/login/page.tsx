@@ -1,23 +1,33 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useRef, useState, FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Uncontrolled inputs — no state update on every keystroke, fixes INP issue
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const email = emailRef.current?.value.trim().toLowerCase() || '';
+    const password = passwordRef.current?.value || '';
+
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
     setLoading(true);
 
     const result = await signIn('credentials', {
-      email: email.trim().toLowerCase(),
+      email,
       password,
       redirect: false,
     });
@@ -26,6 +36,8 @@ export default function LoginPage() {
 
     if (result?.error) {
       setError('Invalid email or password. Please try again.');
+      if (passwordRef.current) passwordRef.current.value = '';
+      passwordRef.current?.focus();
     } else {
       router.push('/');
       router.refresh();
@@ -56,11 +68,11 @@ export default function LoginPage() {
                 </label>
                 <input
                   id="email"
+                  ref={emailRef}
                   type="email"
                   autoComplete="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  defaultValue=""
                   placeholder="demo@monsoonguard.app"
                   className="input-field"
                   aria-describedby={error ? 'login-error' : undefined}
@@ -76,11 +88,11 @@ export default function LoginPage() {
                 </label>
                 <input
                   id="password"
+                  ref={passwordRef}
                   type="password"
                   autoComplete="current-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  defaultValue=""
                   placeholder="••••••••"
                   className="input-field"
                 />
@@ -91,6 +103,7 @@ export default function LoginPage() {
                   id="login-error"
                   className="text-red-600 text-sm"
                   role="alert"
+                  aria-live="polite"
                 >
                   {error}
                 </p>
@@ -122,7 +135,7 @@ export default function LoginPage() {
               Email: <code className="font-mono">demo@monsoonguard.app</code>
             </p>
             <p className="text-xs text-blue-600">
-              Password: <code className="font-mono">Monsoon@2025</code>
+              Password: <code className="font-mono">Monsoon@2026</code>
             </p>
           </div>
         </div>

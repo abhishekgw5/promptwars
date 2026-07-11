@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
         const validEmail =
           process.env.DEMO_USER_EMAIL || 'demo@monsoonguard.app';
         const validPassword =
-          process.env.DEMO_USER_PASSWORD || 'Monsoon@2025';
+          process.env.DEMO_USER_PASSWORD || 'Monsoon@2026';
 
         const emailMatch =
           credentials.email.toLowerCase() === validEmail.toLowerCase();
