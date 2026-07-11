@@ -294,9 +294,14 @@ ${forecastLines}
 
 ACTIVE ALERTS: ${alertSummary}`;
 
+  // If a follow-up question was asked, prepend it for context
+  const followUp = userInput.followUpQuestion
+    ? `\n\nUSER'S SPECIFIC QUESTION: "${userInput.followUpQuestion}"\nFocus your response on answering this question specifically.\n`
+    : '';
+
   switch (type) {
     case 'preparedness':
-      return `${weather}
+      return `${weather}${followUp}
 
 HOUSEHOLD PROFILE:
 - Family size: ${userInput.familySize ?? 'Not specified'}
@@ -308,12 +313,12 @@ HOUSEHOLD PROFILE:
 Create a personalized monsoon preparedness plan for this household.`;
 
     case 'checklist':
-      return `${weather}
+      return `${weather}${followUp}
 
 Generate a comprehensive emergency checklist for residents of ${location.city} given these conditions.`;
 
     case 'travel':
-      return `${weather}
+      return `${weather}${followUp}
 
 TRAVEL PLAN:
 - From: ${location.city}
@@ -324,7 +329,7 @@ TRAVEL PLAN:
 Provide a travel advisory for this route under current monsoon conditions.`;
 
     case 'safety':
-      return `${weather}
+      return `${weather}${followUp}
 
 Generate comprehensive safety recommendations for ${location.city} residents given these conditions.`;
 

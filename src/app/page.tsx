@@ -22,7 +22,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<'not_found' | 'server' | null>(null);
-  const [followUpQuery, setFollowUpQuery] = useState<string | null>(null);
 
   /* ---- auto-detect location on first load ---- */
   useEffect(() => {
@@ -263,30 +262,10 @@ export default function Home() {
             {activeTab !== 'dashboard' && (
               <FollowUpSuggestions
                 feature={activeTab as 'preparedness' | 'checklist' | 'travel' | 'safety'}
-                onSelect={(q) => setFollowUpQuery(q)}
+                weather={weather}
+                location={location!}
+                language={language}
               />
-            )}
-
-            {/* Show selected follow-up query */}
-            {followUpQuery && (
-              <div className="card bg-monsoon-50 border-monsoon-200 animate-fade-up">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-monsoon-800 mb-1">Selected question:</p>
-                    <p className="text-monsoon-700">{followUpQuery}</p>
-                    <p className="text-xs text-monsoon-500 mt-2">
-                      Use the form above to generate an AI response for this scenario, or fill in the relevant details and click Generate.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setFollowUpQuery(null)}
-                    className="text-monsoon-400 hover:text-monsoon-600 text-lg leading-none"
-                    aria-label="Dismiss"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
             )}
           </>
         )}
