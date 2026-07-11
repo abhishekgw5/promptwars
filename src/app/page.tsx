@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Location, WeatherData, Language, TABS } from '@/lib/types';
 import Header from '@/components/Header';
 import AlertBanner from '@/components/AlertBanner';
@@ -12,6 +13,7 @@ import TravelAdvisory from '@/components/TravelAdvisory';
 import SafetyTips from '@/components/SafetyTips';
 
 export default function Home() {
+  const { data: session } = useSession();
   const [location, setLocation] = useState<Location | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -253,13 +255,23 @@ export default function Home() {
           <div className="card text-center py-16">
             <span className="text-6xl block mb-4">🌧️</span>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Welcome to MonsoonGuard
+              {session
+                ? `Welcome back, ${session.user?.name?.split(' ')[0]}!`
+                : 'Welcome to MonsoonGuard'}
             </h2>
             <p className="text-gray-500 max-w-md mx-auto">
               AI-powered monsoon preparedness at your fingertips. Enter your city
               or allow location access to get started with real-time weather
               insights and personalized safety guidance.
             </p>
+            {!session && (
+              <p className="text-sm text-monsoon-600 mt-4">
+                <a href="/login" className="underline hover:text-monsoon-800">
+                  Sign in
+                </a>{' '}
+                to save your profile and get fully personalized recommendations.
+              </p>
+            )}
           </div>
         )}
       </main>

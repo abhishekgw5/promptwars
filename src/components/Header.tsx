@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession, signOut } from 'next-auth/react';
 import { Language, LANGUAGES } from '@/lib/types';
 
 interface Props {
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export default function Header({ language, onLanguageChange }: Props) {
+  const { data: session } = useSession();
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -44,6 +47,31 @@ export default function Header({ language, onLanguageChange }: Props) {
               )
             )}
           </select>
+
+          {session ? (
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600">
+                <span className="w-7 h-7 rounded-full bg-monsoon-100 text-monsoon-700 flex items-center justify-center font-semibold text-xs">
+                  {session.user?.name?.charAt(0).toUpperCase() || 'U'}
+                </span>
+                <span className="hidden md:inline">{session.user?.name}</span>
+              </span>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="text-sm text-gray-500 hover:text-red-600 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
+                aria-label="Sign out"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <a
+              href="/login"
+              className="btn-primary text-sm py-1.5 px-4"
+            >
+              Sign in
+            </a>
+          )}
         </div>
       </div>
     </header>

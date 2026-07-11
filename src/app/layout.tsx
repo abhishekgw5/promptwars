@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import Providers from './providers';
 
 export const metadata: Metadata = {
   title: 'MonsoonGuard — AI-Powered Monsoon Preparedness',
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <ErrorBoundary>{children}</ErrorBoundary>
+        <Providers>
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </Providers>
       </body>
     </html>
   );

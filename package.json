@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "next": "^16.2.10",
+    "next-auth": "^4.24.14",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "undici": "^7.28.0"
