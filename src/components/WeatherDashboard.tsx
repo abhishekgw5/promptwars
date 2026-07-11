@@ -1,12 +1,14 @@
 'use client';
 
+import { memo } from 'react';
 import { WeatherData } from '@/lib/types';
 
 interface Props {
   weather: WeatherData;
 }
 
-export default function WeatherDashboard({ weather }: Props) {
+/** Memoized weather dashboard — only re-renders when weather data changes */
+const WeatherDashboard = memo(function WeatherDashboard({ weather }: Props) {
   const { current, forecast } = weather;
   const severity = getMonsoonSeverity(weather);
 
@@ -103,7 +105,7 @@ export default function WeatherDashboard({ weather }: Props) {
       </div>
     </div>
   );
-}
+});
 
 /* ---- sub-components ---- */
 
@@ -179,3 +181,5 @@ function formatDate(iso: string) {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+export default WeatherDashboard;

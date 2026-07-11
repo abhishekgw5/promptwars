@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { WeatherAlert } from '@/lib/types';
 
 interface Props {
@@ -36,7 +37,8 @@ const severityConfig: Record<
   },
 };
 
-export default function AlertBanner({ alerts }: Props) {
+/** Memoized alert banner — only re-renders when alerts change */
+const AlertBanner = memo(function AlertBanner({ alerts }: Props) {
   if (!alerts.length) return null;
 
   return (
@@ -60,4 +62,6 @@ export default function AlertBanner({ alerts }: Props) {
       })}
     </div>
   );
-}
+});
+
+export default AlertBanner;
