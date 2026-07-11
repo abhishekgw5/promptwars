@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { WeatherData, Location, Language, PreparednessResult } from '@/lib/types';
+import LanguageChangeBanner from './LanguageChangeBanner';
 
 interface Props {
   weather: WeatherData;
@@ -55,6 +56,7 @@ export default function PreparednessPlanner({ weather, location, language }: Pro
 
   return (
     <div className="space-y-6">
+      <LanguageChangeBanner language={language} hasContent={!!result} onRegenerate={generate} />
       {/* Input form */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">

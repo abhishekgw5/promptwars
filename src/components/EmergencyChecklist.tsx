@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { WeatherData, Location, Language, ChecklistResult } from '@/lib/types';
+import LanguageChangeBanner from './LanguageChangeBanner';
 
 interface Props {
   weather: WeatherData;
@@ -98,6 +99,7 @@ export default function EmergencyChecklist({ weather, location, language }: Prop
 
   return (
     <div className="space-y-6">
+      <LanguageChangeBanner language={language} hasContent={!!result} onRegenerate={generate} />
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">
           Emergency Monsoon Checklist

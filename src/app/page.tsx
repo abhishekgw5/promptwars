@@ -45,7 +45,7 @@ export default function Home() {
   }, []);
 
   /* ---- fetch weather when location changes ---- */
-  const fetchWeather = useCallback(async (loc: Location) => {
+  const fetchWeather = useCallback(async (loc: Location, lang = 'en') => {
     setLoading(true);
     setError(null);
     setErrorKind(null);
@@ -60,6 +60,7 @@ export default function Home() {
         params.set('lat', String(loc.lat));
         params.set('lon', String(loc.lon));
       }
+      params.set('lang', lang);
 
       const res = await fetch(`/api/weather?${params}`);
       if (!res.ok) {
@@ -112,9 +113,17 @@ export default function Home() {
       Math.abs(location.lat - weather.location.lat) < 0.01 &&
       Math.abs(location.lon - weather.location.lon) < 0.01
     ) return;
-    fetchWeather(location);
+    fetchWeather(location, language);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city, location?.lat, location?.lon]);
+
+  // Re-fetch weather when language changes (updates OWM weather descriptions)
+  useEffect(() => {
+    if (location && weather) {
+      fetchWeather(location, language);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   const handleLocationChange = useCallback((loc: Location) => {
     setLocation(loc);

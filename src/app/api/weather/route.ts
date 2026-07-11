@@ -9,11 +9,24 @@ const GEO_BASE = 'https://api.openweathermap.org/geo/1.0';
 /** Cache weather responses for 5 minutes to reduce API calls */
 const CACHE_MAX_AGE = 300;
 
+/** Map our language codes to OpenWeatherMap language codes */
+const OWM_LANG_MAP: Record<string, string> = {
+  en: 'en',
+  hi: 'hi',
+  bn: 'bn',
+  mr: 'en', // OWM does not support Marathi — fallback to English
+  te: 'en', // OWM does not support Telugu — fallback to English
+  ta: 'en', // OWM does not support Tamil — fallback to English
+  kn: 'en', // OWM does not support Kannada — fallback to English
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const rawLat = searchParams.get('lat');
   const rawLon = searchParams.get('lon');
   const rawCity = searchParams.get('city');
+  const rawLang = searchParams.get('lang') || 'en';
+  const owmLang = OWM_LANG_MAP[rawLang] || 'en';
 
   const apiKey = process.env.OPENWEATHERMAP_API_KEY;
   if (!isValidApiKey(apiKey)) {
@@ -67,10 +80,10 @@ export async function GET(request: NextRequest) {
     // Fetch current weather + 5-day forecast in parallel
     const [currentRes, forecastRes] = await Promise.all([
       serverFetch(
-        `${OWM_BASE}/weather?lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${apiKey}`
+        `${OWM_BASE}/weather?lat=${coords.lat}&lon=${coords.lon}&units=metric&lang=${owmLang}&appid=${apiKey}`
       ),
       serverFetch(
-        `${OWM_BASE}/forecast?lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${apiKey}`
+        `${OWM_BASE}/forecast?lat=${coords.lat}&lon=${coords.lon}&units=metric&lang=${owmLang}&appid=${apiKey}`
       ),
     ]);
 

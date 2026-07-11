@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { WeatherData, Location, Language, TravelResult } from '@/lib/types';
+import LanguageChangeBanner from './LanguageChangeBanner';
 
 interface Props {
   weather: WeatherData;
@@ -62,6 +63,7 @@ export default function TravelAdvisory({ weather, location, language }: Props) {
 
   return (
     <div className="space-y-6">
+      <LanguageChangeBanner language={language} hasContent={!!result} onRegenerate={() => destination.trim() ? generate() : undefined} />
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           Monsoon Travel Advisory
