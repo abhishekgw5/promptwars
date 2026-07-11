@@ -12,6 +12,9 @@ import CredentialsProvider from 'next-auth/providers/credentials';
  * A NEXTAUTH_SECRET must also be set (any long random string).
  */
 export const authOptions: NextAuthOptions = {
+  secret:
+    process.env.NEXTAUTH_SECRET ||
+    'monsoonguard-dev-fallback-secret-do-not-use-in-prod',
   providers: [
     CredentialsProvider({
       name: 'MonsoonGuard Account',
@@ -27,7 +30,6 @@ export const authOptions: NextAuthOptions = {
         const validPassword =
           process.env.DEMO_USER_PASSWORD || 'Monsoon@2025';
 
-        // Constant-time comparison to prevent timing attacks
         const emailMatch =
           credentials.email.toLowerCase() === validEmail.toLowerCase();
         const passwordMatch = credentials.password === validPassword;
@@ -43,7 +45,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  session: { strategy: 'jwt', maxAge: 8 * 60 * 60 }, // 8-hour session
+  session: { strategy: 'jwt', maxAge: 8 * 60 * 60 },
   pages: {
     signIn: '/login',
   },
