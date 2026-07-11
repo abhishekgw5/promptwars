@@ -191,7 +191,7 @@ export default function Home() {
           <>
             {/* Tab navigation */}
             <nav
-              className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide"
+              className="flex gap-1.5 overflow-x-auto pb-1 p-1 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm"
               role="tablist"
               aria-label="Feature sections"
             >
@@ -201,10 +201,10 @@ export default function Home() {
                   role="tab"
                   aria-selected={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'bg-monsoon-600 text-white shadow-md'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                      ? 'bg-gradient-to-r from-monsoon-600 to-blue-600 text-white shadow-md scale-[1.02]'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'
                   }`}
                 >
                   <span>{tab.icon}</span>
@@ -250,28 +250,44 @@ export default function Home() {
           </>
         )}
 
-        {/* Empty state */}
+        {/* Empty state hero */}
         {!weather && !loading && !error && (
-          <div className="card text-center py-16">
-            <span className="text-6xl block mb-4">🌧️</span>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {session
-                ? `Welcome back, ${session.user?.name?.split(' ')[0]}!`
-                : 'Welcome to MonsoonGuard'}
-            </h2>
-            <p className="text-gray-500 max-w-md mx-auto">
-              AI-powered monsoon preparedness at your fingertips. Enter your city
-              or allow location access to get started with real-time weather
-              insights and personalized safety guidance.
-            </p>
-            {!session && (
-              <p className="text-sm text-monsoon-600 mt-4">
-                <a href="/login" className="underline hover:text-monsoon-800">
-                  Sign in
-                </a>{' '}
-                to save your profile and get fully personalized recommendations.
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-monsoon-700 via-blue-700 to-cyan-700 text-white shadow-2xl">
+            {/* Decorative blobs */}
+            <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-cyan-400/20 blur-2xl" />
+
+            <div className="relative px-8 py-14 text-center">
+              <div className="text-7xl mb-6 animate-float inline-block">🌧️</div>
+              <h2 className="text-3xl sm:text-4xl font-black mb-3">
+                {session
+                  ? `Welcome back, ${session.user?.name?.split(' ')[0]}!`
+                  : 'MonsoonGuard'}
+              </h2>
+              <p className="text-blue-100 max-w-lg mx-auto text-base leading-relaxed">
+                AI-powered monsoon preparedness. Get real-time weather insights,
+                personalized safety plans, and emergency guidance — before, during,
+                and after severe weather events.
               </p>
-            )}
+
+              {/* Feature pills */}
+              <div className="flex flex-wrap justify-center gap-2 mt-6">
+                {['🌦️ Live Weather', '🤖 AI Plans', '✅ Checklists', '🚗 Travel Alerts', '🛡️ Safety Tips', '🌐 7 Languages'].map((f) => (
+                  <span key={f} className="px-3 py-1.5 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium border border-white/20">
+                    {f}
+                  </span>
+                ))}
+              </div>
+
+              {!session && (
+                <div className="mt-6">
+                  <a href="/login"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-monsoon-700 font-semibold rounded-xl shadow-lg hover:bg-blue-50 transition-colors">
+                    🔐 Sign in for personalized experience
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

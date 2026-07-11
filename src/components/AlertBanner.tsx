@@ -9,31 +9,39 @@ interface Props {
 
 const severityConfig: Record<
   string,
-  { bg: string; border: string; text: string; icon: string }
+  { bg: string; leftBar: string; text: string; subText: string; icon: string; label: string }
 > = {
   extreme: {
-    bg: 'bg-red-50',
-    border: 'border-red-300',
-    text: 'text-red-800',
+    bg: 'bg-red-50/90 backdrop-blur-sm border border-red-200',
+    leftBar: 'bg-red-500',
+    text: 'text-red-900',
+    subText: 'text-red-700',
     icon: '🚨',
+    label: 'EXTREME',
   },
   high: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-300',
-    text: 'text-orange-800',
+    bg: 'bg-orange-50/90 backdrop-blur-sm border border-orange-200',
+    leftBar: 'bg-orange-500',
+    text: 'text-orange-900',
+    subText: 'text-orange-700',
     icon: '⚠️',
+    label: 'HIGH',
   },
   moderate: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-300',
-    text: 'text-amber-800',
+    bg: 'bg-amber-50/90 backdrop-blur-sm border border-amber-200',
+    leftBar: 'bg-amber-500',
+    text: 'text-amber-900',
+    subText: 'text-amber-700',
     icon: '⚡',
+    label: 'MODERATE',
   },
   low: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-300',
-    text: 'text-blue-800',
+    bg: 'bg-blue-50/90 backdrop-blur-sm border border-blue-200',
+    leftBar: 'bg-blue-400',
+    text: 'text-blue-900',
+    subText: 'text-blue-700',
     icon: 'ℹ️',
+    label: 'INFO',
   },
 };
 
@@ -42,20 +50,29 @@ const AlertBanner = memo(function AlertBanner({ alerts }: Props) {
   if (!alerts.length) return null;
 
   return (
-    <div className="space-y-2 max-w-7xl mx-auto px-4 pt-4" role="alert">
+    <div className="space-y-2 max-w-7xl mx-auto px-4 pt-4 stagger" role="alert" aria-live="polite">
       {alerts.map((alert, i) => {
         const cfg = severityConfig[alert.severity] || severityConfig.low;
         return (
           <div
             key={i}
-            className={`${cfg.bg} ${cfg.border} ${cfg.text} border rounded-xl px-4 py-3 flex items-start gap-3`}
+            className={`${cfg.bg} rounded-xl overflow-hidden flex items-stretch shadow-sm`}
           >
-            <span className="text-xl flex-shrink-0" aria-hidden="true">
-              {cfg.icon}
-            </span>
-            <div>
-              <p className="font-semibold">{alert.title}</p>
-              <p className="text-sm opacity-90">{alert.description}</p>
+            {/* Coloured left accent bar */}
+            <div className={`w-1.5 flex-shrink-0 ${cfg.leftBar}`} />
+            <div className="flex items-start gap-3 px-4 py-3 flex-1">
+              <span className="text-2xl flex-shrink-0 mt-0.5" aria-hidden="true">
+                {cfg.icon}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className={`font-bold ${cfg.text}`}>{alert.title}</p>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.leftBar} text-white`}>
+                    {cfg.label}
+                  </span>
+                </div>
+                <p className={`text-sm mt-0.5 ${cfg.subText}`}>{alert.description}</p>
+              </div>
             </div>
           </div>
         );
