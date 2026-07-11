@@ -43,7 +43,7 @@ export interface WeatherAlert {
   description: string;
 }
 
-export type Language = 'en' | 'hi' | 'mr' | 'te' | 'ta' | 'kn' | 'bn';
+export type Language = 'en' | 'hi' | 'mr' | 'te' | 'ta' | 'bn';
 
 export const LANGUAGES: Record<Language, string> = {
   en: 'English',
@@ -51,7 +51,6 @@ export const LANGUAGES: Record<Language, string> = {
   mr: 'मराठी',
   te: 'తెలుగు',
   ta: 'தமிழ்',
-  kn: 'ಕನ್ನಡ',
   bn: 'বাংলা',
 };
 

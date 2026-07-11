@@ -117,19 +117,40 @@ export async function POST(request: NextRequest) {
 
 /* ---- prompt builders ---- */
 
-function langSuffix(language: string): string {
+/** Language metadata — only languages Llama 3.3 handles reliably */
+const LANG_META: Record<string, { name: string; native: string; example: string }> = {
+  en: { name: 'English',  native: 'English',  example: 'Stay indoors during heavy rain.' },
+  hi: { name: 'Hindi',    native: 'हिन्दी',   example: 'भारी बारिश के दौरान घर के अंदर रहें।' },
+  mr: { name: 'Marathi',  native: 'मराठी',    example: 'जड पावसाच्या वेळी घरात राहा.' },
+  bn: { name: 'Bengali',  native: 'বাংলা',    example: 'ভারী বৃষ্টির সময় ঘরে থাকুন।' },
+  te: { name: 'Telugu',   native: 'తెలుగు',   example: 'భారీ వర్షం సమయంలో ఇంట్లోనే ఉండండి.' },
+  ta: { name: 'Tamil',    native: 'தமிழ்',    example: 'கடுமையான மழையின் போது வீட்டில் இருங்கள்.' },
+};
+
+/**
+ * Builds a strict language preamble placed at the START of every system prompt.
+ * Research shows language instructions are most effective when placed first.
+ */
+function langPreamble(language: string): string {
   if (language === 'en') return '';
-  const names: Record<string, string> = {
-    hi: 'Hindi', mr: 'Marathi', te: 'Telugu', ta: 'Tamil', kn: 'Kannada', bn: 'Bengali',
-  };
-  return `\n\nIMPORTANT: Write ALL text values in ${names[language] || 'English'}. Keep JSON keys in English.`;
+  const meta = LANG_META[language];
+  if (!meta) return '';
+  return `🌐 LANGUAGE REQUIREMENT — READ FIRST:
+You MUST write EVERY text value in ${meta.name} (${meta.native}) script.
+- ALL titles, summaries, items, tips, descriptions → in ${meta.name}
+- JSON keys stay in English (e.g. "title", "items")
+- Do NOT use English words in text values (except proper nouns like city names)
+- Example of correct output: "${meta.example}"
+- The end user speaks ONLY ${meta.name}. English text is useless to them.
+
+`;
 }
 
 function buildSystemPrompt(type: string, language: string): string {
-  const ls = langSuffix(language);
+  const preamble = langPreamble(language);
 
   const prompts: Record<string, string> = {
-    preparedness: `You are an expert monsoon preparedness consultant for India. Based on real-time weather data and the user's household profile, create a thorough, personalized monsoon preparedness plan with specific, actionable steps.${ls}
+    preparedness: `${preamble}You are an expert monsoon preparedness consultant for India. Based on real-time weather data and the user's household profile, create a thorough, personalized monsoon preparedness plan with specific, actionable steps.
 
 Respond ONLY with valid JSON:
 {
@@ -146,7 +167,7 @@ Respond ONLY with valid JSON:
 
 Include 5-7 sections covering: Home Waterproofing, Emergency Supplies, Communication Plan, Water & Sanitation, Electrical Safety, Document Protection, Health Precautions. Tailor priorities to current weather severity.`,
 
-    checklist: `You are an emergency management specialist for Indian monsoon conditions. Generate a dynamic, prioritized emergency checklist reflecting current weather data and severity.${ls}
+    checklist: `${preamble}You are an emergency management specialist for Indian monsoon conditions. Generate a dynamic, prioritized emergency checklist reflecting current weather data and severity.
 
 Respond ONLY with valid JSON:
 {
@@ -165,7 +186,7 @@ Respond ONLY with valid JSON:
 
 Generate 5-6 categories spanning all three phases with 4-6 items each. Adjust severity and item urgency based on weather.`,
 
-    travel: `You are a travel safety advisor specializing in Indian monsoon conditions. Provide data-driven, specific travel guidance.${ls}
+    travel: `${preamble}You are a travel safety advisor specializing in Indian monsoon conditions. Provide data-driven, specific travel guidance.
 
 Respond ONLY with valid JSON:
 {
@@ -180,7 +201,7 @@ Respond ONLY with valid JSON:
 
 Assess risk honestly. Provide 4-6 items per array.`,
 
-    safety: `You are a monsoon safety expert for India. Generate context-aware safety guidance based on real weather data. Focus on practical, potentially life-saving advice.${ls}
+    safety: `${preamble}You are a monsoon safety expert for India. Generate context-aware safety guidance based on real weather data. Focus on practical, potentially life-saving advice.
 
 Respond ONLY with valid JSON:
 {
@@ -200,6 +221,7 @@ Include 5-7 categories: Home Safety, Outdoor Safety, Vehicle Safety, Health & Hy
 
   return prompts[type] || prompts.safety;
 }
+Assess risk honestly. Provide 4-6 items per array.`,
 
 function buildUserPrompt(
   type: string,
