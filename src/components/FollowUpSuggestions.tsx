@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WeatherData, Location, Language } from '@/lib/types';
 
 interface Props {
@@ -46,6 +46,12 @@ export default function FollowUpSuggestions({ feature, weather, location, langua
   const questions = SUGGESTIONS[feature] ?? [];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Reset chat when switching tabs
+  useEffect(() => {
+    setMessages([]);
+    setLoading(false);
+  }, [feature]);
 
   const handleAsk = async (question: string) => {
     setMessages((prev) => [...prev, { role: 'user', content: question }]);
