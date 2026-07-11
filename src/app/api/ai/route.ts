@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverFetch } from '@/lib/server-fetch';
+import { isValidApiKey } from '@/lib/validation';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-// Ordered fallback list — try each model until one works
+/** Ordered model fallback list — tries each until one responds */
 const MODEL_FALLBACKS = [
   'meta-llama/llama-4-scout-17b-16e-instruct',
   'llama-3.3-70b-versatile',
@@ -11,6 +12,56 @@ const MODEL_FALLBACKS = [
   'llama-3.1-8b-instant',
   'mixtral-8x7b-32768',
 ];
+
+/* ---- Shared type definitions ---- */
+
+interface LocationPayload {
+  city: string;
+  country?: string;
+  lat: number;
+  lon: number;
+}
+
+interface ForecastEntry {
+  date: string;
+  description: string;
+  temp_min: number;
+  temp_max: number;
+  rain_probability: number;
+  rain_amount: number;
+}
+
+interface AlertEntry {
+  severity: string;
+  title: string;
+}
+
+interface WeatherPayload {
+  current: {
+    temp: number;
+    feels_like: number;
+    humidity: number;
+    wind_speed: number;
+    description: string;
+    rain_1h?: number;
+    visibility: number;
+    pressure: number;
+  };
+  forecast: ForecastEntry[];
+  alerts?: AlertEntry[];
+}
+
+interface AIRequestBody {
+  type: 'preparedness' | 'checklist' | 'travel' | 'safety';
+  weatherData: WeatherPayload;
+  location: LocationPayload;
+  language: string;
+  userInput: Record<string, string>;
+}
+
+interface GroqResponse {
+  choices?: { message: { content: string } }[];
+}
 
 async function callGroq(
   apiKey: string,
@@ -37,28 +88,27 @@ async function callGroq(
   });
 }
 
-export async function GET() {
-  // Health check endpoint — useful for diagnosing deployment issues
-  const hasKey = !!process.env.GROQ_API_KEY;
-  const model = process.env.AI_MODEL || MODEL_FALLBACKS[0];
+export async function GET(): Promise<Response> {
+  const hasKey = isValidApiKey(process.env.GROQ_API_KEY);
+  const model = process.env.AI_MODEL ?? MODEL_FALLBACKS[0];
   return NextResponse.json({ status: 'ok', hasKey, model });
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
+  if (!isValidApiKey(apiKey)) {
     return NextResponse.json({ error: 'AI API key not configured. Set GROQ_API_KEY in Vercel environment variables.' }, { status: 500 });
   }
 
   try {
-    const body = await request.json();
+    const body: AIRequestBody = await request.json();
     const { type, weatherData, location, language = 'en', userInput = {} } = body;
 
     if (!type || !weatherData || !location) {
       return NextResponse.json({ error: 'Missing required fields: type, weatherData, location' }, { status: 400 });
     }
 
-    const validTypes = ['preparedness', 'checklist', 'travel', 'safety'];
+    const validTypes: AIRequestBody['type'][] = ['preparedness', 'checklist', 'travel', 'safety'];
     if (!validTypes.includes(type)) {
       return NextResponse.json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` }, { status: 400 });
     }
@@ -66,7 +116,6 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildSystemPrompt(type, language);
     const userPrompt = buildUserPrompt(type, weatherData, location, userInput);
 
-    // Try the configured model first, then fallbacks
     const configuredModel = process.env.AI_MODEL;
     const modelsToTry = configuredModel
       ? [configuredModel, ...MODEL_FALLBACKS.filter((m) => m !== configuredModel)]
@@ -78,12 +127,9 @@ export async function POST(request: NextRequest) {
     for (const model of modelsToTry) {
       response = await callGroq(apiKey, model, systemPrompt, userPrompt);
       if (response.ok) break;
-
       const errText = await response.text();
       console.error(`Groq model "${model}" failed (${response.status}):`, errText);
       lastError = errText;
-
-      // Only retry on model-not-found (404); stop on auth/rate/other errors
       if (response.status !== 404) break;
       response = null;
     }
@@ -92,19 +138,16 @@ export async function POST(request: NextRequest) {
       if (response?.status === 429) {
         return NextResponse.json({ error: 'Rate limit reached — please wait a moment and try again.' }, { status: 429 });
       }
-      return NextResponse.json(
-        { error: `AI service error: ${lastError || 'All models unavailable'}` },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: `AI service error: ${lastError || 'All models unavailable'}` }, { status: 502 });
     }
 
-    const data = await response.json();
+    const data: GroqResponse = await response.json();
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
       return NextResponse.json({ error: 'Empty response from AI' }, { status: 502 });
     }
 
-    const parsed = JSON.parse(content);
+    const parsed: unknown = JSON.parse(content);
     return NextResponse.json(parsed);
   } catch (error) {
     console.error('AI route error:', error);
@@ -117,14 +160,10 @@ export async function POST(request: NextRequest) {
 
 /* ---- prompt builders ---- */
 
-/** Language metadata — only languages Llama 3.3 handles reliably */
+/** Language metadata — languages reliably supported by Llama 3.3 */
 const LANG_META: Record<string, { name: string; native: string; example: string }> = {
-  en: { name: 'English',  native: 'English',  example: 'Stay indoors during heavy rain.' },
-  hi: { name: 'Hindi',    native: 'हिन्दी',   example: 'भारी बारिश के दौरान घर के अंदर रहें।' },
-  mr: { name: 'Marathi',  native: 'मराठी',    example: 'जड पावसाच्या वेळी घरात राहा.' },
-  bn: { name: 'Bengali',  native: 'বাংলা',    example: 'ভারী বৃষ্টির সময় ঘরে থাকুন।' },
-  te: { name: 'Telugu',   native: 'తెలుగు',   example: 'భారీ వర్షం సమయంలో ఇంట్లోనే ఉండండి.' },
-  ta: { name: 'Tamil',    native: 'தமிழ்',    example: 'கடுமையான மழையின் போது வீட்டில் இருங்கள்.' },
+  en: { name: 'English', native: 'English', example: 'Stay indoors during heavy rain.' },
+  hi: { name: 'Hindi',   native: 'हिन्दी',  example: 'भारी बारिश के दौरान घर के अंदर रहें।' },
 };
 
 /**
@@ -224,46 +263,47 @@ Include 5-7 categories: Home Safety, Outdoor Safety, Vehicle Safety, Health & Hy
 
 function buildUserPrompt(
   type: string,
-  weatherData: any,
-  location: any,
+  weatherData: WeatherPayload,
+  location: LocationPayload,
   userInput: Record<string, string>
 ): string {
+  const forecastLines = weatherData.forecast
+    .map(
+      (f) =>
+        `  ${f.date}: ${f.description}, ${f.temp_min}–${f.temp_max}°C, rain ${f.rain_probability}% (${f.rain_amount} mm)`
+    )
+    .join('\n');
+
+  const alertSummary =
+    weatherData.alerts?.length
+      ? weatherData.alerts.map((a) => `[${a.severity.toUpperCase()}] ${a.title}`).join('; ')
+      : 'None';
+
   const weather = `
-LIVE WEATHER — ${location.city}, ${location.country || 'India'}
+LIVE WEATHER — ${location.city}, ${location.country ?? 'India'}
 Temperature: ${weatherData.current.temp}°C (feels like ${weatherData.current.feels_like}°C)
 Humidity: ${weatherData.current.humidity}%
 Wind: ${weatherData.current.wind_speed} m/s
 Conditions: ${weatherData.current.description}
-Rainfall (1h): ${weatherData.current.rain_1h || 0} mm
+Rainfall (1h): ${weatherData.current.rain_1h ?? 0} mm
 Visibility: ${weatherData.current.visibility} m
 Pressure: ${weatherData.current.pressure} hPa
 
 5-DAY FORECAST:
-${(weatherData.forecast || [])
-  .map(
-    (f: any) =>
-      `  ${f.date}: ${f.description}, ${f.temp_min}–${f.temp_max}°C, rain ${f.rain_probability}% (${f.rain_amount} mm)`
-  )
-  .join('\n')}
+${forecastLines}
 
-ACTIVE ALERTS: ${
-    weatherData.alerts?.length
-      ? weatherData.alerts
-          .map((a: any) => `[${a.severity.toUpperCase()}] ${a.title}`)
-          .join('; ')
-      : 'None'
-  }`;
+ACTIVE ALERTS: ${alertSummary}`;
 
   switch (type) {
     case 'preparedness':
       return `${weather}
 
 HOUSEHOLD PROFILE:
-- Family size: ${userInput.familySize || 'Not specified'}
-- Housing type: ${userInput.housingType || 'Not specified'}
-- Area type: ${userInput.areaType || 'Not specified'}
-- Special needs: ${userInput.specialNeeds || 'None'}
-- Floor level: ${userInput.floorLevel || 'Not specified'}
+- Family size: ${userInput.familySize ?? 'Not specified'}
+- Housing type: ${userInput.housingType ?? 'Not specified'}
+- Area type: ${userInput.areaType ?? 'Not specified'}
+- Special needs: ${userInput.specialNeeds ?? 'None'}
+- Floor level: ${userInput.floorLevel ?? 'Not specified'}
 
 Create a personalized monsoon preparedness plan for this household.`;
 
@@ -277,9 +317,9 @@ Generate a comprehensive emergency checklist for residents of ${location.city} g
 
 TRAVEL PLAN:
 - From: ${location.city}
-- Destination: ${userInput.destination || 'Not specified'}
-- Mode: ${userInput.travelMode || 'Not specified'}
-- Date: ${userInput.travelDate || 'Today'}
+- Destination: ${userInput.destination ?? 'Not specified'}
+- Mode: ${userInput.travelMode ?? 'Not specified'}
+- Date: ${userInput.travelDate ?? 'Today'}
 
 Provide a travel advisory for this route under current monsoon conditions.`;
 

@@ -98,20 +98,27 @@ export function mostFrequent(arr: string[]): string {
   return best;
 }
 
+/** Typed shape of the OWM current weather object used by deriveAlerts */
+interface CurrentWeather {
+  rain?: { '1h'?: number };
+  wind?: { speed?: number };
+  visibility?: number;
+}
+
 /**
  * Derives weather alerts from current conditions and forecast data.
  * Evaluates rainfall intensity, wind speed, visibility, and upcoming forecast
  * to produce actionable warnings with severity levels.
  */
 export function deriveAlerts(
-  current: Record<string, any>,
+  current: CurrentWeather,
   forecastList: ForecastItem[]
 ): WeatherAlert[] {
   const alerts: WeatherAlert[] = [];
 
-  const rain1h: number = current.rain?.['1h'] || 0;
-  const windSpeed: number = current.wind?.speed || 0;
-  const visibility: number = current.visibility || 10000;
+  const rain1h: number = current.rain?.['1h'] ?? 0;
+  const windSpeed: number = current.wind?.speed ?? 0;
+  const visibility: number = current.visibility ?? 10000;
 
   // Rainfall alerts
   if (rain1h > 30) {
